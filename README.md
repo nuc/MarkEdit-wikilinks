@@ -7,10 +7,11 @@ A small CodeMirror extension that adds wikilink syntax highlighting and Cmd-clic
 ## Features
 
 - **Highlights** `[[Note Name]]`, `[[Note|Alias]]`, and `![[Embed]]` as real syntax nodes — implemented via a Lezer inline parser so it composes correctly with the rest of MarkEdit's Markdown grammar and stays inert inside fenced code blocks.
-- **Cmd-click to follow** opens the linked file. Resolution mirrors Obsidian:
+- **Cmd-click in the editor** opens the linked file. Resolution mirrors Obsidian:
   1. same folder as the current file,
   2. vault-relative path if the target contains `/` (e.g. `[[docs/foo]]`),
   3. recursive search from the vault root (the directory containing `.obsidian/`), skipping hidden and noisy folders, budget-capped at 5,000 entries per click.
+- **Plain click in the [MarkEdit-preview](https://github.com/MarkEdit-app/MarkEdit-preview) pane** also follows wikilinks. The preview integration post-processes the rendered HTML (the preview plugin's `markdown-it` pipeline doesn't know `[[…]]`), turning text nodes into anchors with the same resolver, and is a no-op if MarkEdit-preview isn't installed.
 - **Create-on-miss**: if nothing resolves, prompts to create `<target>.md` in the current folder.
 - **Styled** via CSS classes that pick up your MarkEdit theme.
 

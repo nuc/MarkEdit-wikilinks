@@ -36,7 +36,7 @@ export const followWikilinks = EditorView.domEventHandlers({
   },
 });
 
-async function openTarget(rawTarget: string) {
+export async function openTarget(rawTarget: string) {
   const target = rawTarget.split(/[#^]/)[0].trim();
   if (!target) return;
 
