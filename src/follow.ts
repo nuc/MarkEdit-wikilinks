@@ -10,6 +10,11 @@ const SKIP_DIRS = new Set(['node_modules', 'dist', 'build', 'target']);
 // Cap on how many entries we visit per click, to keep huge vaults responsive.
 const SEARCH_BUDGET = 5000;
 
+// Sentinels that mark a directory as a vault root. findVaultRoot() walks up
+// from the current file and returns the first ancestor containing any of these.
+// Order matters only for the diagnostic message; resolution uses any-match.
+const VAULT_MARKERS: readonly string[] = ['.obsidian', '.git', '.markedit-vault'];
+
 export const followWikilinks = EditorView.domEventHandlers({
   mousedown: (event, view) => {
     if (!event.metaKey) return false;
@@ -99,13 +104,13 @@ function basenameVariants(target: string): string[] {
   return hasExt ? [leaf] : MD_EXTS.map(ext => leaf + ext);
 }
 
-// Walk up from `start` looking for a directory containing `.obsidian/`.
+// Walk up from `start` looking for a directory containing any VAULT_MARKERS entry.
 // Stops at the user's home dir or filesystem root.
 async function findVaultRoot(start: string): Promise<string | null> {
   let dir = start;
   for (let i = 0; i < 12; i++) {
     const entries = await MarkEdit.listFiles(dir);
-    if (entries?.includes('.obsidian')) return dir;
+    if (entries && VAULT_MARKERS.some(m => entries.includes(m))) return dir;
     const parent = dirname(dir);
     if (!parent || parent === dir) return null;
     dir = parent;
@@ -167,7 +172,7 @@ async function showMissDialog(
     title: `Couldn't resolve “${target}”`,
     message:
       `Current file: ${currentFilePath}\n` +
-      `Vault root:   ${vaultRoot ?? '(none — no .obsidian/ found walking up)'}\n` +
+      `Vault root:   ${vaultRoot ?? `(none — no [${VAULT_MARKERS.join(', ')}] found walking up)`}\n` +
       `Same-folder tried:\n  ${candidates.join('\n  ')}\n\n` +
       `listFiles(parent): ${listSample}\n\n` +
       `Create ${candidates[0]}?`,
