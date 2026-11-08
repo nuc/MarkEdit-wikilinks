@@ -91,7 +91,7 @@ export async function openTarget(rawTarget: string) {
 }
 
 function expandCandidates(baseDir: string, target: string): string[] {
-  const hasExt = /\.[a-zA-Z0-9]+$/.test(target);
+  const hasExt = hasExtension(target);
   const bases = target.startsWith('/') ? [target] : [joinPath(baseDir, target)];
   if (hasExt) return bases;
   return bases.flatMap(b => MD_EXTS.map(ext => b + ext));
@@ -100,7 +100,7 @@ function expandCandidates(baseDir: string, target: string): string[] {
 function basenameVariants(target: string): string[] {
   // Strip any folder prefix the user wrote — vault search matches on basename.
   const leaf = target.includes('/') ? target.slice(target.lastIndexOf('/') + 1) : target;
-  const hasExt = /\.[a-zA-Z0-9]+$/.test(leaf);
+  const hasExt = hasExtension(leaf);
   return hasExt ? [leaf] : MD_EXTS.map(ext => leaf + ext);
 }
 
@@ -119,7 +119,8 @@ async function findVaultRoot(start: string): Promise<string | null> {
 }
 
 async function searchVault(root: string, leafTargets: string[]): Promise<string | null> {
-  const wanted = new Set(leafTargets);
+  // Case-insensitive like Obsidian and macOS, so [[note]] finds Note.md anywhere in the vault
+  const wanted = new Set(leafTargets.map(t => t.toLowerCase()));
   const stack: string[] = [root];
   let budget = SEARCH_BUDGET;
 
@@ -136,7 +137,7 @@ async function searchVault(root: string, leafTargets: string[]): Promise<string 
       if (entry.startsWith('.') || SKIP_DIRS.has(entry)) continue;
 
       const full = joinPath(dir, entry);
-      if (wanted.has(entry)) return full;
+      if (wanted.has(entry.toLowerCase())) return full;
 
       // Only stat entries that aren't obviously files, to save round-trips.
       if (looksLikeFile(entry)) continue;
@@ -153,7 +154,13 @@ async function searchVault(root: string, leafTargets: string[]): Promise<string 
 
 function looksLikeFile(name: string): boolean {
   // Cheap heuristic to skip getFileInfo on obvious files.
-  return /\.[a-zA-Z0-9]{1,8}$/.test(name);
+  return hasExtension(name);
+}
+
+// Extensions start with a letter, so names like "2024.10" or "Meeting 2024.10"
+// count as folders or extensionless notes rather than files.
+function hasExtension(name: string): boolean {
+  return /\.[a-zA-Z][a-zA-Z0-9]{0,7}$/.test(name);
 }
 
 async function showMissDialog(
